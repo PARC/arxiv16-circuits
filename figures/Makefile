@@ -1,6 +1,7 @@
 .PRECIOUS: %.mp
 
-DEST = multiplier.mps
+DEST  = adder_2.mps
+DEST += multiplier.mps
 
 %.mps: %.mp
 	mpost $<

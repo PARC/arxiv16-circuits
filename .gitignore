@@ -157,3 +157,7 @@ pythontex-files-*/
 
 # Latexian
 TSWLatexianTemp*
+
+# Outputs
+arxiv16-quantum.ps
+arxiv16-quantum.pdf

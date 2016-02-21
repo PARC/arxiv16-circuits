@@ -1,39 +1,62 @@
-\title{Comparison of Stochastic and Quantum Model-Based Circuit Diagnosis Algorithms}
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{fullpage}
+\usepackage{amsthm}
+%
+\graphicspath{{figures/}}
+%
+\input{defs}
+%
+\title{Stochastic and Quantum Algorithms for Model-Based Diagnosis of Digital Circuits}
+%
+% Title for submission to Science: Quantum Speedup = Diagnostic Optimality
+%
+\author{Alejandro Perdomo-Ortiz, Alexander Feldman, Asier Ozaeta, and Johan de Kleer}
+%
 \begin{document}
+\maketitle
 \section{Introduction}
+\section{Running Example}
+gen-adder 2
 \section{Definitions}
 
-\subsection{Running Example}
+\begin{definition}[model/circuit]
+\end{definition}
 
-gen-adder 2
+\begin{definition}[fault injection]
+\end{definition}
 
-\subsection{Defs}
-Alex: 
+\begin{definition}[observation]
+\end{definition}
 
-model/circuit
-fault injection
-observation
-diagnosis
-? health state of a gate (binomial pdf)
-? health state of a circuit (combination of all binomal pdfs)
-most informed (health state/pdf)
-metric - diff between most informed pdf and health state pdf
+\begin{definition}[diagnosis]
+\end{definition}
 
-\section{Boolean MBD Fundamentals}
+\begin{definition}[? health state of a gate (binomial pdf)]
+\end{definition}
 
-Alex, everybody, diagnosis as a fault injection/estimation optimization process
+\begin{definition}[? health state of a circuit (combination of all binomal pdfs)]
+\end{definition}
 
-\section{Polynomial Representation of MBD}
+\begin{definition}[most informed (health state/pdf)]
+\end{definition}
 
-Alejandro: copy/paste/work
+\begin{definition}[metric - diff between most informed pdf and health state pdf]
+\end{definition}
 
+\section{Fundamentals of Circuit Diagnostics}
+\section{Circuit Diagnosis and Polynomial Minimization}
 \section{Simulated Annealing}
 \section{Quantum Annealing}
-
 \section{Experiments}
-Asier: table setup/benchmark
-Alex: Algorithm for observation generation
-
+%
+\begin{figure}[htb]
+\centering
+\includegraphics[scale=0.4]{multiplier.mps}
+\caption{$n$-bit parallel multiplier\label{fig:multiplier}}
+\end{figure}
+%
+\section{Related Work}
 \section{Conclusions}
 
 \end{document}

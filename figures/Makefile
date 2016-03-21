@@ -1,6 +1,7 @@
 .PRECIOUS: %.mp
 
-DEST  = adder_2.mps
+DEST  = basis.mps
+DEST += adder_2.mps
 DEST += multiplier.mps
 
 %.mps: %.mp

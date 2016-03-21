@@ -1,7 +1,9 @@
 \documentclass{article}
 \usepackage{graphicx}
 \usepackage{fullpage}
+\usepackage{amsmath}
 \usepackage{amsthm}
+\usepackage{xspace}
 %
 \graphicspath{{figures/}}
 %
@@ -16,40 +18,122 @@
 \begin{document}
 \maketitle
 \section{Introduction}
-\section{Running Example}
 
+\section{Definitions}
+%
+This section gives the basic definitions used in the algorithms we
+design and analyze.
+%
+\begin{definition}[Basis]
+  %
+  A basis $\mathcal{B}$ is a set of propositional formulas $\{f_1 :
+  o_1 \leftrightarrow F_1, f_2 : o_2 \leftrightarrow F_2, \cdots f_n :
+  o_n \leftrightarrow F_n\}$ where $o_1, o_2, \ldots, o_n$ are outputs
+  and $F_1, F_2, \ldots, F_n$ are propositional subformulas
+  implementing Boolean operations.
+  %
+\end{definition}
+\noindent
+%
+We form a base from the common logic-gate types: AND, OR, NAND, NOR,
+XOR, inverter, and buffer. The AND, OR, NAND, and NOR gates may have
+more than two inputs. Figure~\ref{fig:basis} shows these logic gates
+pictographically. In text and formulas we use the common propositional
+logic connectives: $\wedge$, $\vee$, and $\neg$, $\rightarrow$, and
+$\leftrightarrow$. The last two (implication and equivalence) will not
+appear in the circuits we are trying to diagnose (and are not part of
+the basis) but we use them in theory and algorithms. The basis element
+for the AND gate, for example, becomes $o \leftrightarrow i_1 \wedge
+i_2$. The semantics of all this is usual and is explained in any
+introductory logic or VLSI design book.
+%
+\begin{figure}[htb]
+\centering
+\includegraphics{basis.mps}
+\caption{Pictographic representation of common logic gates\label{fig:basis}}
+\end{figure}
+\par
+%
+Logic circuits are designed by connecting gates from the basis. A
+well-formed logic-circuit design is a Direct Acyclic Graph (DAG),
+there are no hanging edges which would be a violation of the common
+definition for a DAG.
+%
+\begin{definition}[Boolean Circuit]
+  %
+  A Boolean circuit $\model = \{V, E\}$ is a DAG in which each edge
+  $e \in E$ is a variable and each node $v \in V$ is either a
+  logic-gate or a primary input or a primary output.
+  %
+\end{definition}
+%
+We have to introduce special primary input and primary output nodes,
+which we do not normally draw in a circuit diagram. Boolean circuits
+normally perform some useful function such as adding or multiplying
+numbers, detecting or correcting errors, etc. Combined with memory
+elements (flip-flops) they become the basis of most modern computing
+(except quantum).
+\par
+Throughout this paper we will use the running example in
+figure~\ref{fig:adder} as a system to be diagnosed. Its function is to
+sum-up two two-bit numbers. The result is a two-bit sum and a
+carry-bit.
+%
 \begin{figure}[htb]
 \centering
 \includegraphics{adder_2.mps}
 \caption{$2$-bit adder\label{fig:adder}}
 \end{figure}
-
-\section{Definitions}
-
-\begin{definition}[model/circuit]
+%
+\begin{definition}[Fault-Augmented Boolean Circuit]
 \end{definition}
 
-\begin{definition}[fault injection]
+\begin{definition}[Observation]
+  %
+  An observation $\alpha$ is an assignment to some or all primary
+  inputs and primary outputs of a Boolean circuit \model.
+  %
 \end{definition}
 
-\begin{definition}[observation]
+\begin{definition}[Fault-Injection]
+  %
+  A fault-injection $\phi$ is an assignment to all fault variables of
+  a fault-augmented Boolean circuit \sd.
+  %
 \end{definition}
 
-\begin{definition}[diagnosis]
+\begin{definition}[Diagnosis]
+  %
+  Given a fault-augmented Boolean circuit \sd and an observation
+  $\alpha$, a diagnosis $\omega$ is defined as an assignment to all
+  fault variables in \sd such that $\sd \wedge \alpha \wedge \omega
+  \not\models \perp$.
+  %
 \end{definition}
 
-\begin{definition}[? health state of a gate (binomial pdf)]
+\begin{definition}[Boolean Circuit Health Estimation]
+  %
+  Given a fault-augmented Boolean circuit \sd, a Boolean circuit
+  fault estimation $H$ is defined as the probability of each fault
+  variable being $\perp$.
+  %
 \end{definition}
 
-\begin{definition}[? health state of a circuit (combination of all binomal pdfs)]
+\begin{definition}[Isolation Accuracy]
+  %
+  Given a fault injection $\phi$ and a fault estimation $H$ belonging
+  to the same fault-augmented Boolean circuit \sd, the isolation
+  accuracy $M_{ia}(\phi, H)$ is defined as:
+  %
+  \begin{eqnarray}
+    M_{ia}(\phi, H) = \sum_{f \in \comps}{\pr{H(f) = \top} - \pr{\phi(f) = \top}}
+  \end{eqnarray}
+  %
+  where $\pr{\phi(f) = \top} = 1$ if $\phi(f) = \top$ and
+  $\pr{\phi(f) = \top} = 0$, otherwise.
+  %
 \end{definition}
-
-\begin{definition}[most informed (health state/pdf)]
-\end{definition}
-
-\begin{definition}[metric - diff between most informed pdf and health state pdf]
-\end{definition}
-
+%
 \section{Fundamentals of Circuit Diagnostics}
 \section{Circuit Diagnosis and Polynomial Minimization}
 \section{Simulated Annealing}

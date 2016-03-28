@@ -61,9 +61,10 @@ definition for a DAG.
 %
 \begin{definition}[Boolean Circuit]
   %
-  A Boolean circuit $\model = \{V, E\}$ is a DAG in which each edge
-  $e \in E$ is a variable and each node $v \in V$ is either a
-  logic-gate or a primary input or a primary output.
+  Given a basis $\mathcal{B}$, a Boolean circuit $\model(\mathcal{B})
+  = \{V, E\}$ is a DAG in which each edge $e \in E$ is a variable and
+  each node $v \in V$ is either a logic-gate drawn from $\mathcal{B}$
+  or a primary input or a primary output.
   %
 \end{definition}
 %
@@ -86,8 +87,44 @@ carry-bit.
 \end{figure}
 %
 \begin{definition}[Fault-Augmented Boolean Circuit]
+  %
+  Given a Boolean circuit $\model(\mathcal{B})$, a fault-augmented
+  Boolean circuit $\model(\mathcal{B^\star})$ is a circuit whose nodes
+  and edges are the same as the nodes and edges of $\model$ and each
+  element in the basis $\mathcal{B}$ is one-to-one mapped to a logic
+  formula in $\mathcal{B^\star}$. Each corresponding logic formula in
+  $\mathcal{B^\star}$ is a composition of the original formula in
+  $\mathcal{B}$ and an additional ``faultmode'' formula.
+  %
 \end{definition}
-
+%
+We typically use ``standard'' ways to augment bases in order to allow
+faults. The simplest ones in Boolean (propositional logic) are
+``weak-fault-models'' or models with ignorance of abnormal
+behavior. Consider, for example, the Boolean model of an AND-gate $o
+\leftrightarrow i_1 \wedge i_2$. The weak-fault model of the same
+AND-gate would look like $h \rightarrow o \leftrightarrow i_1 \wedge
+i_2$.
+\par
+Another type of fault-models are ``strong-fault-models''. In the
+simple case when the output of a gate assumes a stuck-at value, we
+talk about stuck-at-zero and stuck-at-one models. In the case of the
+AND-gate, for example, the stuck-at-zero model becomes:
+%
+\begin{eqnarray}
+  %
+  (h \rightarrow o \leftrightarrow i_1 \wedge i_2) \wedge (\neg{h} \rightarrow \neg{o})
+  %
+\end{eqnarray}
+%
+and the stuck-at-one model becomes:
+%
+\begin{eqnarray}
+  %
+  (h \rightarrow o \leftrightarrow i_1 \wedge i_2) \wedge (\neg{h} \rightarrow o)
+  %
+\end{eqnarray}
+%
 \begin{definition}[Observation]
   %
   An observation $\alpha$ is an assignment to some or all primary
@@ -111,11 +148,20 @@ carry-bit.
   %
 \end{definition}
 
+\begin{definition}[Conflict]
+  %
+  Given a fault-augmented Boolean circuit \sd and an observation
+  $\alpha$, a conflict $\gamma$ is defined as an assignment to all
+  fault variables in \sd such that $\sd \wedge \alpha \wedge \omega
+  \not\models \top$.
+  %
+\end{definition}
+
 \begin{definition}[Boolean Circuit Health Estimation]
   %
   Given a fault-augmented Boolean circuit \sd, a Boolean circuit
   fault estimation $H$ is defined as the probability of each fault
-  variable being $\perp$.
+  variable assuming the value of $\perp$.
   %
 \end{definition}
 

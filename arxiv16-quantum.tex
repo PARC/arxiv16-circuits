@@ -1,9 +1,11 @@
 \documentclass{article}
 \usepackage{graphicx}
 \usepackage{fullpage}
+\usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{xspace}
+\usepackage{multirow}
 %
 \graphicspath{{figures/}}
 %
@@ -13,7 +15,7 @@
 %
 % Title for submission to Science: Quantum Speedup = Diagnostic Optimality
 %
-\author{Alejandro Perdomo-Ortiz, Alexander Feldman, Asier Ozaeta, and Johan de Kleer}
+\author{@todo}
 %
 \begin{document}
 \maketitle
@@ -21,166 +23,512 @@
 
 \section{Definitions}
 %
-This section gives the basic definitions used in the algorithms we
-design and analyze.
+This section provides the basic framework for the algorithms we design
+and analyze.
 %
 \begin{definition}[Basis]
   %
-  A basis $\mathcal{B}$ is a set of propositional formulas $\{f_1 :
-  o_1 \leftrightarrow F_1, f_2 : o_2 \leftrightarrow F_2, \cdots f_n :
-  o_n \leftrightarrow F_n\}$ where $o_1, o_2, \ldots, o_n$ are outputs
-  and $F_1, F_2, \ldots, F_n$ are propositional subformulas
-  implementing Boolean operations.
+  A basis $\mathcal{B}$ is a set of single-output Boolean functions
+  $\{B_1, B_2, \ldots, B_n\}$.
   %
 \end{definition}
-\noindent
 %
-We form a base from the common logic-gate types: AND, OR, NAND, NOR,
-XOR, inverter, and buffer. The AND, OR, NAND, and NOR gates may have
-more than two inputs. Figure~\ref{fig:basis} shows these logic gates
-pictographically. In text and formulas we use the common propositional
-logic connectives: $\wedge$, $\vee$, and $\neg$, $\rightarrow$, and
-$\leftrightarrow$. The last two (implication and equivalence) will not
-appear in the circuits we are trying to diagnose (and are not part of
-the basis) but we use them in theory and algorithms. The basis element
-for the AND gate, for example, becomes $o \leftrightarrow i_1 \wedge
-i_2$. The semantics of all this is usual and is explained in any
-introductory logic or VLSI design book.
+A basis can be constructed from the common logic-gate types AND, OR,
+NAND, NOR, XOR, inverter, and buffer as the $F_1, F_2, \ldots, F_n$
+subformulas. The AND, OR, NAND, and NOR gates may have more than two
+inputs. Figure~\ref{fig:basis} shows these logic gates
+pictographically.
 %
 \begin{figure}[htb]
-\centering
-\includegraphics{basis.mps}
-\caption{Pictographic representation of common logic gates\label{fig:basis}}
+\centering \includegraphics{basis.mps}
+\caption{Pictographic representation of common logic
+  gates\label{fig:basis}}
 \end{figure}
 \par
 %
-Logic circuits are designed by connecting gates from the basis. A
-well-formed logic-circuit design is a Direct Acyclic Graph (DAG),
-there are no hanging edges which would be a violation of the common
-definition for a DAG.
+In this article we use the common propositional logic connectives:
+$\wedge$, $\vee$, $\oplus$, $\neg$, $\rightarrow$, and
+$\leftrightarrow$. The logical connectives implication ($\rightarrow$)
+and equivalence ($\leftrightarrow$) do not appear in the circuits we
+are diagnosing and are not part of the basis. The Boolean formula that
+is equivalent to an AND gate, for example, is $a \wedge b$. The
+semantics of all this is the usual one and is explained in any
+introductory logic or VLSI design book.
+\par
+Logic circuits are designed by drawing gates from the basis and
+connecting them with wires. Wires are represented as variables. A
+well-formed logic-circuit design is a Direct Acyclic Graph
+(DAG). There are no hanging edges in the DAG (that would be a
+violation of the common definition for a DAG). We work with connected
+DAGs only. If somewhere in our algorithms a DAG gets disconnected, we
+remove the orphan or treat the two disconnected DAGs separately.
 %
 \begin{definition}[Boolean Circuit]
   %
   Given a basis $\mathcal{B}$, a Boolean circuit $\model(\mathcal{B})
-  = \{V, E\}$ is a DAG in which each edge $e \in E$ is a variable and
-  each node $v \in V$ is either a logic-gate drawn from $\mathcal{B}$
-  or a primary input or a primary output.
+  = \langle{V \cup \{I^\star, O^\star\}, E}\rangle$ is a DAG in which
+  each edge $e \in E$ is a variable, each node $v \in V$ is a Boolean
+  function drawn from $\mathcal{B}$, $I^\star$ is a primary input
+  source, and $O^\star$ is a primary output sink.
   %
 \end{definition}
 %
-We have to introduce special primary input and primary output nodes,
-which we do not normally draw in a circuit diagram. Boolean circuits
-normally perform some useful function such as adding or multiplying
-numbers, detecting or correcting errors, etc. Combined with memory
-elements (flip-flops) they become the basis of most modern computing
-(except quantum).
+The special primary input source and primary output sink nodes are not
+normally drawn in a circuit diagram. The edges that are adjacent to
+$I^\star$ are the primary inputs and the edges that are adjacent to
+$O^\star$ are the primary outputs.
 \par
-Throughout this paper we will use the running example in
-figure~\ref{fig:adder} as a system to be diagnosed. Its function is to
-sum-up two two-bit numbers. The result is a two-bit sum and a
-carry-bit.
+Implementation of Boolean functions as electric circuits perform
+useful function such as adding or multiplying numbers, detecting or
+correcting errors, etc. Combined with memory elements (flip-flops)
+they become the foundation of most modern computing (except quantum).
+\par
+In this article we will use the circuit shown in
+figure~\ref{fig:adder} as a running example. Its function is to add-up
+two two-bit numbers in binary. The result is a two-bit sum and a carry
+bit.
 %
 \begin{figure}[htb]
 \centering
 \includegraphics{adder_2.mps}
 \caption{$2$-bit adder\label{fig:adder}}
 \end{figure}
+\par
 %
-\begin{definition}[Fault-Augmented Boolean Circuit]
+A Boolean circuit, as defined, has no provisions for failure. We can
+allow parts of a circuit to fail by introducing extra fault variables
+and extra elementary failure functions (constraints).
+%
+\begin{definition}[Fault-Augmented Model]\label{def:sd}
   %
-  Given a Boolean circuit $\model(\mathcal{B})$, a fault-augmented
-  Boolean circuit $\model(\mathcal{B^\star})$ is a circuit whose nodes
-  and edges are the same as the nodes and edges of $\model$ and each
-  element in the basis $\mathcal{B}$ is one-to-one mapped to a logic
-  formula in $\mathcal{B^\star}$. Each corresponding logic formula in
-  $\mathcal{B^\star}$ is a composition of the original formula in
-  $\mathcal{B}$ and an additional ``faultmode'' formula.
+  Given a basis $\mathcal{B}$, a Boolean circuit $\model(\mathcal{B})$
+  and a second fault-augmented basis $\mathcal{B}^\star$, a
+  fault-augmented model $\sd(\mathcal{B}, \mathcal{B^\star})$ is
+  defined as the ordered triple $\langle{\comps, V, E, F}\rangle$
+  where $\comps = \{f_1, f_2, \ldots, f_n\}$, $n = \left|V\right|$,
+  and $F$ is a mapping $F: \mathcal{B} \rightarrow \mathcal{B}^\star$.
   %
 \end{definition}
 %
+Definition~\ref{def:sd} allows us to add a fault variable to each
+logic gate, and depending on the value of the fault variable to allow
+either the original (intended) behavior of the gate or some specified
+faulty one.
+\par
 We typically use ``standard'' ways to augment bases in order to allow
 faults. The simplest ones in Boolean (propositional logic) are
-``weak-fault-models'' or models with ignorance of abnormal
-behavior. Consider, for example, the Boolean model of an AND-gate $o
-\leftrightarrow i_1 \wedge i_2$. The weak-fault model of the same
-AND-gate would look like $h \rightarrow o \leftrightarrow i_1 \wedge
-i_2$.
+``weak-fault-models'' also known as models with ignorance of abnormal
+behavior. Consider, for example, the Boolean model of an AND-gate as
+placed in a circuit: $o \leftrightarrow i_1 \wedge i_2$. The
+weak-fault model of the same AND-gate would look like $h \rightarrow
+\left(o \leftrightarrow i_1 \wedge i_2\right)$.
 \par
-Another type of fault-models are ``strong-fault-models''. In the
-simple case when the output of a gate assumes a stuck-at value, we
-talk about stuck-at-zero and stuck-at-one models. In the case of the
-AND-gate, for example, the stuck-at-zero model becomes:
+Another type of fault-models are ``strong-fault-models''. In these
+cases the basis $\mathcal{B}^\star$ contains only one function, the
+constant $\top$ or $\perp$. In this
+simple case, when the output of a gate assumes a stuck-at value, we
+talk about stuck-at-zero and stuck-at-one models. The stuck-at-zero
+model of an AND-gate, for example, becomes:
 %
 \begin{eqnarray}
   %
-  (h \rightarrow o \leftrightarrow i_1 \wedge i_2) \wedge (\neg{h} \rightarrow \neg{o})
+  \left[\neg{f} \rightarrow (o \leftrightarrow i_1 \wedge i_2)\right]
+  \wedge (f \rightarrow \neg{o})
   %
 \end{eqnarray}
 %
-and the stuck-at-one model becomes:
+and its stuck-at-one model is:
 %
 \begin{eqnarray}
   %
-  (h \rightarrow o \leftrightarrow i_1 \wedge i_2) \wedge (\neg{h} \rightarrow o)
+  \left[\neg{f} \rightarrow (o \leftrightarrow i_1 \wedge i_2)\right]
+  \wedge (f \rightarrow o)
   %
+\end{eqnarray}
+%
+The propositional logic formula that fully models the 2-bit adder
+shown in figure \ref{fig:adder} is:
+%
+\begin{eqnarray}\label{eqn:adder_model}
+\left|
+\begin{array}{l}
+\left[\neg{f_0} \rightarrow (z_0 \leftrightarrow a_0 \wedge b_0)\right] \wedge (f_0 \rightarrow z_0) \\
+\left[\neg{f_1} \rightarrow (\Sigma_0 \leftrightarrow a_0 \oplus b_0)\right] \wedge (f_1 \rightarrow \Sigma_0) \\
+\left[\neg{f_2} \rightarrow (z_1 \leftrightarrow a_1 \wedge b_1)\right] \wedge (f_2 \rightarrow z_1) \\
+\left[\neg{f_3} \rightarrow (z_2 \leftrightarrow a_1 \oplus b_1)\right] \wedge (f_3 \rightarrow z_2) \\
+\left[\neg{f_4} \rightarrow (z_3 \leftrightarrow z_2 \wedge z_0)\right] \wedge (f_4 \rightarrow z_3) \\
+\left[\neg{f_5} \rightarrow (\Sigma_1 \leftrightarrow z_2 \oplus z_0)\right] \wedge (f_5 \rightarrow \sigma_1) \\
+\left[\neg{f_6} \rightarrow (c_o \leftrightarrow z_1 \vee z_3)\right] \wedge (f_6 \rightarrow c_o)
+\end{array}
+\right.
 \end{eqnarray}
 %
 \begin{definition}[Observation]
   %
   An observation $\alpha$ is an assignment to some or all primary
-  inputs and primary outputs of a Boolean circuit \model.
+  inputs and primary outputs of a Boolean circuit \sd.
   %
 \end{definition}
-
-\begin{definition}[Fault-Injection]
+%
+An example observation for the 2-bit adder shown in
+figure~\ref{fig:adder} is $\alpha = \neg{a_0} \wedge a_1 \wedge b_0
+\wedge b_1 \wedge c_o \wedge \Sigma_0 \wedge \Sigma_1$. It is a full
+observation as each variable is assigned a value, there are no unknown
+or ``don't care'' variables.
+\par
+Once we have a fault-augmented model (a Boolean circuit whose gates
+are allowed to fail), we can create fault-injections by assigning
+values to \textit{all} component variables in \comps.
+%
+\begin{definition}[Fault-Injection]\label{def:fi}
   %
-  A fault-injection $\phi$ is an assignment to all fault variables of
-  a fault-augmented Boolean circuit \sd.
+  Given a fault-augmented model \sd with fault variables \comps, a
+  fault-injection $\phi$ is an assignment to all fault variables in
+  \comps.
   %
 \end{definition}
-
+%
+It is important that a fault-injection assigns values to all assumable
+variables in a model. A fault injection for the adder example in
+figure~\ref{fig:adder} would be $\phi = \neg{f_3} \wedge \neg{f_6}$, a
+double-fault. As definition~\ref{def:fi} requires that all fault
+variables are given values, the $\phi$ example in the previous sentence
+assumes that all missing variables $f_0, f_1, f_2, f_4$, and $f_5$ are
+assigned the constant $\perp$.
+\par
+The purpose of a diagnostic algorithm is to find fault-injections from
+a model and an observation. Due to the Boolean nature of our models
+and the limited number of observation variables there are often
+competing hypotheses for a fault injection. These individual
+hypotheses are called diagnoses.
+%
 \begin{definition}[Diagnosis]
   %
-  Given a fault-augmented Boolean circuit \sd and an observation
-  $\alpha$, a diagnosis $\omega$ is defined as an assignment to all
-  fault variables in \sd such that $\sd \wedge \alpha \wedge \omega
-  \not\models \perp$.
+  Given a fault-augmented model \sd with fault variables \comps and an
+  observation $\alpha$, a diagnosis $\omega$ is defined as an
+  assignment to all fault variables in \comps such that $\omega
+  \models \sd \wedge \alpha$.
   %
 \end{definition}
-
+%
+The model in formula~\ref{eqn:adder_model} and the last observation
+$\alpha$ lead to $96$ diagnoses. An example diagnosis is $f_5$ because
+for the input $\neg{a_0} \wedge a_1 \wedge b_0 \wedge b_1$ the output
+should be $c_o \wedge \neg{\Sigma_1} \wedge \Sigma_0$ but in the
+example observation $\Sigma_1 = \top$. Assuming $f_5$ is stuck-at-one
+will immediately ``fix'' $\Sigma_1$ which makes $f_5$ faulty and all
+other gates healthy a diagnosis.
+%
+\begin{proposition}
+  %
+  Given a fault-augmented Boolean circuit \sd, an observation $\alpha$
+  and a fault injection $\phi$, it follows that there is a diagnosis
+  $\omega$ of $\sd \wedge \alpha$ such that $\phi \equiv \omega$.
+  %
+\end{proposition}
+\begin{proof}
+  @todo: alex
+\end{proof}
+%
+Boolean satisfiability (consistency) is relevant in the case of
+diagnosis because there is a guarantee that a diagnostic algorithm
+that computes all (consistent) diagnoses is going to find the
+fault-injection amongst them. So, what is an assignment to all
+assumable variable that is not consistent with the model and the
+observation? This is called conflict and is the dual of diagnosis.
+%
 \begin{definition}[Conflict]
   %
-  Given a fault-augmented Boolean circuit \sd and an observation
-  $\alpha$, a conflict $\gamma$ is defined as an assignment to all
-  fault variables in \sd such that $\sd \wedge \alpha \wedge \omega
-  \not\models \top$.
+  Given a fault-augmented model \sd with fault variables \comps and an
+  observation $\alpha$, a conflict $\gamma$ is defined as an
+  assignment to all fault variables in \comps such that $\gamma
+  \not\models \sd \wedge \alpha$.
   %
 \end{definition}
-
-\begin{definition}[Boolean Circuit Health Estimation]
+%
+Given the 2-bit adder of figure~\ref{fig:adder} and the observation
+$\alpha$, there are $32$ conflicts. Let $\Omega$ be the set of all
+diagnoses of a model and $\Gamma$ the set of all conflicts. It is easy
+to see that $|\Omega| + |\Gamma| = 2^{|\comps|}$. Continuing our
+running example, $\gamma_0 = \neg{f_0} \wedge \neg{f_1} \cdots
+\wedge{f_6}$ (the all nominal assignment) is a conflict and $\gamma_1
+= f_1$ is another conflict. The easiest human explanations of a
+conflict is that ``at-least one of the healthy gates given in the
+conflict must be faulty to explain the observed output''. This is
+consistent with the definition of conflict in the founding MBD work of
+\cite{?}. 
+\par
+One of the problems with diagnoses and conflicts is that there is an
+exponential number of them. Depending on the circuit it is either a
+small number of conflicts and a huge number of diagnoses; the
+opposite; and very rarely and in artificial cases, half and
+half. Computing and storing all of them will require not only
+exponential time but also exponential space and space is more costly
+than time. To overcome the exponential space problem we collapse the
+information from each diagnosis into a number that estimates the value
+of the fault variables in \comps.
+%
+\begin{definition}[Health Estimation]
   %
-  Given a fault-augmented Boolean circuit \sd, a Boolean circuit
-  fault estimation $H$ is defined as the probability of each fault
-  variable assuming the value of $\perp$.
+  Given a fault-augmented model \sd with fault variables \comps, a
+  Boolean circuit fault estimation $H$ is defined as the set of
+  probabilities $H = \{\pr{f = \perp}\}$ of each fault variable $f \in
+  \comps$ assuming the value of $\perp$.
   %
 \end{definition}
-
-\begin{definition}[Isolation Accuracy]
+%
+Notice that $\pr{f = \perp} = 1 - \pr{f = \top}$ and that each element
+of $H$ defines a binomial probability distribution function.
+\par
+Finally, we need a formula to judge the accuracy of a diagnostic
+algorithm. First we have to build a probability distribution function
+from the fault injection. The fault injection is by definition
+certain, hence the probability of a fault variable in a fault
+injection being $\perp$ or $\top$ is either zero or one. After we have
+two sets of probability distribution function we can compute distance.
+%
+\begin{definition}[Classification Errors]
   %
   Given a fault injection $\phi$ and a fault estimation $H$ belonging
-  to the same fault-augmented Boolean circuit \sd, the isolation
-  accuracy $M_{ia}(\phi, H)$ is defined as:
+  to the same fault-augmented Boolean circuit \sd, the classification
+  errors $M_{\textrm{err}}(\phi, H)$ is defined as:
   %
   \begin{eqnarray}
-    M_{ia}(\phi, H) = \sum_{f \in \comps}{\pr{H(f) = \top} - \pr{\phi(f) = \top}}
+    M_{\textrm{err}}(\phi, H) = \sum_{f \in \comps}{\left|\pr{H(f) = \perp} - \pr{\phi(f) = \perp}\right|}
   \end{eqnarray}
   %
-  where $\pr{\phi(f) = \top} = 1$ if $\phi(f) = \top$ and
+  where $\pr{\phi(f) = \perp} = 1$ if $\phi(f) = \perp$ and
   $\pr{\phi(f) = \top} = 0$, otherwise.
   %
 \end{definition}
 %
-\section{Fundamentals of Circuit Diagnostics}
+\section{Fundamentals of Circuit Diagnosis}
+%
+\begin{theorem}[de Kleer]
+  %
+  Let $\Omega$ be the set of all diagnoses of $\sd \wedge \alpha$. Let
+  $\Gamma$ be the set of all conflicts of $\sd \wedge \alpha$. Let
+  $\mathrm{HS}(\Delta)$ be the set of all distinct hitting set of the
+  elements in the set $\Delta$. It follows that $\mathrm{HS}(\Gamma)
+  \equiv \Omega$ and $\mathrm{HS}(\Omega) \equiv \Gamma$.
+  %
+\end{theorem}
+\begin{proof}
+  @todo: alex
+\end{proof}
+%
+\newpage
+\subsection{Boolean Circuit Diagnostics and Bayesian Probabilistic Reasoning}
+%
+One of the most challenging concepts in diagnosis of Boolean circuits
+is to link deterministic propositional reasoning to probabilistic
+reasoning.
+\par
+Our ultimate goal is to compute correct \textbf{a posteriori} values
+of failure probabilities, using \textbf{all} information that we
+have. We are Bayesians in our argument: once we learn a new fact about
+our diagnostic experiment, we update all the failure probabilities.
+\par
+We think of the fault-augmented circuit as a Boolean function that
+takes some inputs and computes an output. A key realization is that
+the fault variables can be treated also as primary inputs. The
+difference between regular primary inputs and fault inputs is in the
+distribution of the a priori probability.
+\par
+Let us consider the simple function $o \leftrightarrow i_1 \vee i_2$
+(an OR-gate, no fault variable) where $o$ is the primary output and
+$i_1$ and $i_2$ are inputs. The truth-table of this function is given
+in table~\ref{tbl:or}. Normally, we cannot say much about the a priori
+probability distribution of a primary input. Therefore we assume that
+$\pr{i_1 = \top} = \pr{i_2 = \perp} = \frac{1}{2}$. In other words, the
+assignment to a primary input is the outcome of flipping an
+\textbf{unbiased} coin.
+\par
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{ccc}
+  \toprule
+  $i_1$   & $i_2$    & $o$     \\
+  \midrule
+  $\perp$ & $\perp$  & $\perp$ \\
+  $\perp$ & $\top$   & $\top$  \\
+  $\top$  & $\perp$  & $\top$  \\
+  $\top$  & $\top$   & $\top$  \\
+  \midrule
+  $\pr{i_1 = \top} = \frac{1}{2}$ & $\pr{i_2 = \top} = \frac{1}{2}$ & $\pr{o = \top \given o \leftrightarrow i_1 \vee i_2} = \frac{3}{4}$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+\caption{Truth-table, a priori input and a posteriori output (given a Boolean function) probabilities of an OR-gate\label{tbl:or}}
+\end{table}
+%
+If we look at table~\ref{tbl:or} we can count the number of
+occurrences of $\top$ in columns $i_1$ and $i_2$ and confirm that the
+table matches the assumed a priori probability. We can now answer
+questions by counting. An example question is: ``Given $o
+\leftrightarrow i_1 \vee i_2$, a priori probabilities $\pr{i_1 =
+  \top} = \pr{i_2 = \perp} = \frac{1}{2}$, and $o \leftrightarrow
+\top$, what is the a posteriori probability of $i_1 = \top$?'' The
+answer is: $\pr{i_1 = \top \given o \leftrightarrow i_1 \vee i_2, o
+  = \top} = \frac{2}{3}$.
+\par
+What if we have a primary input, the value of which is the outcome of
+a \textbf{biased} coin. For example, $\pr{i_1 = \top} =
+\frac{2}{3}$. It is easy to construct a new truth-table, by taking the
+entries in table~\ref{tbl:or} and duplicating the third and fourth
+rows. The result is shown in table~\ref{tbl:or_biased}.
+\par
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{ccc}
+  \toprule
+  $i_1$   & $i_2$    & $o$     \\
+  \midrule
+  $\perp$ & $\perp$  & $\perp$ \\
+  $\perp$ & $\top$   & $\top$  \\
+  $\top$  & $\perp$  & $\top$  \\
+  $\top$  & $\top$   & $\top$  \\
+  $\top$  & $\perp$  & $\top$  \\
+  $\top$  & $\top$   & $\top$  \\
+  \midrule
+  $\pr{i_1 = \top} = \frac{2}{3}$ & $\pr{i_2 = \top} = \frac{1}{2}$ & $\pr{o = \top \given o \leftrightarrow i_1 \vee i_2} = \frac{5}{6}$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+\caption{Truth-table, a priori input and a posteriori output (given a Boolean function) probabilities of an OR-gate\label{tbl:or_biased}}
+\end{table}
+\par
+The same counting routine also works with
+table~\ref{tbl:or_biased}. We can now compute that $\pr{i_1 = \top
+  \given o \leftrightarrow i_1 \vee i_2, o = \top} =
+\frac{4}{5}$. So we just saw how the a priori probability of $\pr{i_1
+  = \top} = \frac{2}{3}$ became $\frac{4}{5}$ given that we know the
+Boolean function and the value of the output.
+\par
+
+The next step is to assume that our Boolean function allows a
+fault. Let us again take the OR-gate but also say that it may become
+stuck-at-one. The Boolean function becomes $\left[\neg{f} \rightarrow
+  \left(o \leftrightarrow i_1 \vee i_2\right)\right] \wedge f
+\rightarrow o$. Another step that brings us closer to reality is that
+we now assume that the a priori failure probability of $f$ is $\pr{f =
+  \top} = 0.05$. This is a much smaller number than
+before. Table~\ref{tbl:or_fault} shows the new case.
+%
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{ccccl}
+  \toprule
+  $f$     & $i_1$   & $i_2$    & $o$     & \\
+  \midrule
+  $\perp$ & $\perp$ & $\perp$  & $\perp$ & \multirow{4}{*}{$\left. \vphantom{\begin{tabular}{c}4\\4\\4\\4\end{tabular}}\right\}$repeat 95 times} \\
+  $\perp$ & $\perp$ & $\top$   & $\top$  & \\
+  $\perp$ & $\top$  & $\perp$  & $\top$  & \\
+  $\perp$ & $\top$  & $\top$   & $\top$  & \\
+  \multicolumn{5}{c}{$\vdots$}             \\
+  $\top$  & $\perp$ & $\perp$  & $\top$  & \multirow{4}{*}{$\left. \vphantom{\begin{tabular}{c}4\\4\\4\\4\end{tabular}}\right\}$repeat 5 times} \\
+  $\top$  & $\perp$ & $\top$   & $\top$  & \\
+  $\top$  & $\top$  & $\perp$  & $\top$  & \\
+  $\top$  & $\top$  & $\top$   & $\top$  & \\
+  \multicolumn{5}{c}{$\vdots$}             \\
+  \midrule
+  $\pr{f = \top} = 0.05$ & $\pr{i_1 = \top} = \frac{1}{2}$ & $\pr{i_2 = \top} = \frac{1}{2}$ & \\
+  \bottomrule
+\end{tabular}
+\end{center}
+\caption{Truth-table and a priori input probabilities of an
+  OR-gate\label{tbl:or_fault} whose output could become stuck-at-one}
+\end{table}
+\par
+%
+We can now answer diagnostic queries by counting the rows in
+table~\ref{tbl:or_fault}. For example, what is the a posteriori
+probability of $f = \top$ given $\alpha = \neg{i_1} \wedge \neg{i_2}
+\wedge o$. There are exactly five rows in table~\ref{tbl:or_fault}
+that are compatible with this observation $\alpha$ and $f =
+\top$. Hence, the a posteriori probability $\pr{f = \top \given
+  \left[\neg{f} \rightarrow \left(o \leftrightarrow i_1 \vee
+    i_2\right)\right] \wedge f \rightarrow o, \neg{i_1}, \neg{i_2}, o}
+= \frac{5}{5} = 1$.
+\par
+Two observations of table~\ref{tbl:or_fault} allow us to derive the
+general Bayesian update formula for fault-augmented Boolean circuits:
+(1) the $f$ column lists all diagnoses of the circuit and (2) instead
+of repeating row groups to provide for the desired a priori fault
+probability we can add-up the a priori probabilities directly.
+%
+\begin{theorem}
+  %
+  Given a system description $\sd$, an observation $\alpha$ and a
+  priori fault probability of each fault variable $f_i \in \comps$,
+  $\pr{f_i} = \epsilon$, the a posteriori fault probability of $f_i$
+  can be computed according to the following formula:
+  \[
+  \pr{f_i \given \sd, \alpha} = \frac{\epsilon\left|\left\{\omega \in \Omega : f_i \models \omega\right\}\right|}
+                                     {\epsilon\left|\left\{\omega \in \Omega : f_i \models \omega\right\}\right| + \left(1 - \epsilon\right)\left|\left\{\omega \in \Omega : f_i \not\models \omega\right\}\right|},
+  \]
+  where $\Omega$ is the set of all diagnoses of $\sd$ given $\alpha$.
+  %
+\end{theorem}
+\begin{proof}
+  @todo: alex
+\end{proof}
+
+
+
+%
+%
+%
+%The starting
+%concept is prior failure probability of a component. This probability
+%is specified for the component ``outside'' of a system. It is not
+%intuitive, but the moment we connect the components together in a
+%system, the a posteriori failure probability changes depending on the
+%topology of the system. The moment we learn the input and output
+%observation the a posteriori failure probability changes once again.
+%\par
+%Let us say that the a priori probability of a component $f$ to be
+%stuck-at-one is $\epsilon$. The probability $\pr{f = \perp}$ that the
+%component is functioning normally is $1 - \epsilon$. Suppose we have a
+%system in which the components are not connected to each other. What
+%is the probability of a diagnosis $\omega$? We assume that components
+%fail independently, i.e., there is no some ``hidden'' action between
+%them, only the connections in the system are allowed to propagate
+%information. The a priori probability of a diagnosis $\omega$ is:
+%%
+%\begin{eqnarray}
+%  \pr{\omega} = \prod_{f \in \omega}{\epsilon} \times \prod_{f \not\in \omega}{1 - \epsilon}
+%\end{eqnarray}
+%%
+%If we sum \pr{\omega} for all diagnoses in our hypothetical
+%disconnected systems we see that the total probability mass is one
+%which is consistent with the laws of probability.
+%\par
+%We introduce the concept of ``full-table'' for diagnostic analysis of
+%Boolean circuits. This requires the explicit creation of a table where
+%each possible variable assignment (input, output, fault, internal)
+%occupies a separate row. This, of course, leads to incredible
+%combinational blow-up (the table has $2^n$ rows where $n$ is the total
+%number of variables), and is never practical. The ``full-table''
+%method, however, is an incredible help in analyzing the properties of
+%the diagnostic systems and algorithms and deriving the key concepts of
+%model-based diagnosis.
+%
+%\begin{table}[hbt]
+%\begin{center}
+%\begin{tabular}{ccccccc}
+%  \toprule
+%  $f_0$   & $f_1$   & $f_2$   & $f_3$    & $f_4$    & $f_5$    & $f_6$   \\
+%  \midrule
+%  $\perp$ & $\perp$ & $\perp$ & $\perp$  & $\perp$ & $\perp$  & $\perp$ \\
+%  $\top$  &         &         &          &         &          &         \\
+%          & $\top$  &         &          &         &          &         \\
+%  \bottomrule
+%\end{tabular}
+%\end{center}
+%\caption{Illustration of the ``table'' method for the full-adder example\label{tbl:full_adder_table}}
+%\end{table}
+%%
 \section{Circuit Diagnosis and Polynomial Minimization}
 \section{Simulated Annealing}
 \section{Quantum Annealing}

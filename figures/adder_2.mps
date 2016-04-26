@@ -2,12 +2,12 @@
 %%BoundingBox: -1 596 244 788 
 %%HiResBoundingBox: -0.45 596.66104 243.45 787.95 
 %%Creator: MetaPost 1.902
-%%CreationDate: 2016.03.20:1952
+%%CreationDate: 2016.04.09:2030
 %%Pages: 1
 %*Font: cmmi10 9.96265 9.96265 61:e400004
 %*Font: cmmi7 6.97385 6.97385 6f:8
 %*Font: cmr10 9.96265 9.96265 06:8
-%*Font: cmr7 6.97385 6.97385 30:ff
+%*Font: cmr7 6.97385 6.97385 30:fe
 %%BeginProlog
 %%EndProlog
 %%Page: 1 1
@@ -185,11 +185,11 @@ newpath 22.5 715.5 moveto
 50.4 658.8 moveto
 (f) cmmi10 9.96265 fshow
 55.27759 657.3056 moveto
-(1) cmr7 6.97385 fshow
+(0) cmr7 6.97385 fshow
 54 613.8 moveto
 (f) cmmi10 9.96265 fshow
 58.8776 612.3056 moveto
-(2) cmr7 6.97385 fshow
+(1) cmr7 6.97385 fshow
 4.5 675 moveto
 (a) cmmi10 9.96265 fshow
 9.7661 673.5056 moveto
@@ -213,23 +213,23 @@ newpath 22.5 715.5 moveto
 50.4 766.8 moveto
 (f) cmmi10 9.96265 fshow
 55.27759 765.3056 moveto
-(3) cmr7 6.97385 fshow
+(2) cmr7 6.97385 fshow
 54 721.8 moveto
 (f) cmmi10 9.96265 fshow
 58.8776 720.3056 moveto
-(4) cmr7 6.97385 fshow
+(3) cmr7 6.97385 fshow
 131.4 712.8 moveto
 (f) cmmi10 9.96265 fshow
 136.27759 711.3056 moveto
-(5) cmr7 6.97385 fshow
+(4) cmr7 6.97385 fshow
 135 666.9 moveto
 (f) cmmi10 9.96265 fshow
 139.8776 665.4056 moveto
-(6) cmr7 6.97385 fshow
+(5) cmr7 6.97385 fshow
 198 756.9 moveto
 (f) cmmi10 9.96265 fshow
 202.8776 755.4056 moveto
-(7) cmr7 6.97385 fshow
+(6) cmr7 6.97385 fshow
 85.5 666 moveto
 (z) cmmi10 9.96265 fshow
 90.1331 664.5056 moveto

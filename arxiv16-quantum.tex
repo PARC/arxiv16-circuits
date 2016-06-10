@@ -530,6 +530,82 @@ probability we can add-up the a priori probabilities directly.
 %\end{table}
 %%
 \section{Circuit Diagnosis and Polynomial Minimization}
+%
+One not very practical way to compute circuit diagnosis is to convert
+the Boolean circuit to a propositional formula (there is a simple
+one-to-one conversion algorithm), to add the observation to the
+formula and to find all satisfiable solutions \cite{?}. Sometimes it
+is beneficiary in terms of speed to add extra constraints or to
+temporarily remove parts of the formula.
+\par
+Another approach is to convert the Boolean circuit or the
+propositional formula to a polynomial
+expression. Table~\ref{tbl:polynomial_conversion} shows the common
+propositional operators and their corresponding polynomial
+expressions. If, as is customary, we set the Boolean constant $\perp$
+to correspond to the real number $0$ and the Boolean constant $\top$
+to $1$, then the valuation of each polynomial in
+table~\ref{tbl:polynomial_conversion} is equivalent to the valuation
+of its corresponding propositional operator.
+%
+\begin{table}[hbt]
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Propositional Logic Operator & Polynomial Equivalent \\
+\midrule
+$x \leftrightarrow y$        & $1 - x - y + 2xy$     \\
+$x \rightarrow y$            & $1 - x + xy$          \\
+$x \wedge y$                 & $xy$                  \\
+$x \vee y$                   & $x + y - xy$          \\
+$\neg{x}$                    & $1 - x$               \\
+\bottomrule
+\end{tabular}
+\caption{Propositional operators to polynomial conversion table\label{tbl:polynomial_conversion}}
+\end{center}
+\end{table}
+\par
+Table~\ref{tbl:polynomial_conversion} shows the polynomial equivalence
+of the most commonly used propositional operators and all other
+propositional operators can be reduced to these. Conversions of
+Boolean circuits, however, result in conjunction of small
+propositional expressions such as the ones in
+table~\ref{tbl:polynomial_conversion}. A typical system description
+\sd looks like this:
+%
+\begin{eqnarray}
+  \label{eqn:conjunction}
+  \sd = \bigwedge_{v \in V}{v}
+\end{eqnarray}
+where $|V|$ is sufficiently large.
+\par
+Replacing this outermost conjunction operator with a product gives a
+polynomial whose valuation is $0$ for the $\perp$ valuation of the
+propositional formula and $1$ for the $\top$ valuation of the
+corresponding formula which will work for the purpose of computing
+satisfiable and non-satisfiable assignments through polynomial
+optimization. Large products, however, lead to numerical problems and
+we can take the sum instead. The polynomial equivalent of
+eq.~\ref{eqn:conjunction} becomes:
+%
+\begin{eqnarray}
+  \label{eqn:conjunction}
+  \sd_{\mathrm{poly}} = \sum_{v \in V}{\mathrm{poly}(v)}
+\end{eqnarray}
+where $\mathrm{poly}(v)$ is the result of recursively applying the
+equivalent formulas shown in
+table~\ref{tbl:polynomial_conversion}. A valuations of
+$\sd_{\mathrm{poly}}$ is minimal if and only if it is non-satisfiable
+solutions of $\sd$. This shows that polynomial minimization is an
+$\mathrm{NP}$-complete problem:
+%
+\begin{theorem}
+  Polynomial minimization is $\mathrm{NP}$-complete.
+\end{theorem}
+\begin{proof}
+  @todo: Alex D.
+\end{proof}
+%
 \section{Simulated Annealing}
 \section{Quantum Annealing}
 \section{Experiments}

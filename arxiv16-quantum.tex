@@ -6,6 +6,8 @@
 \usepackage{amsthm}
 \usepackage{xspace}
 \usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 %
 \graphicspath{{figures/}}
 %
@@ -602,14 +604,272 @@ $\mathrm{NP}$-complete problem:
 \begin{theorem}
   Polynomial minimization is $\mathrm{NP}$-complete.
 \end{theorem}
-\begin{proof}
-  @todo: Alex D.
+\begin{proof}\textit{Sketch:}
+	Consider a 3-CNF formula:
+	\[
+	\gamma = \bigwedge_{i = 1}^{n}{x_{i, 1} \vee x_{i, 2} \vee x_{i, 3}}
+	\]
+	where $x_{i, 1}, x_{i, 1}$, and $x_{i, 3}$ are positive or negative
+	literals. There exists a transformation $\tau$ that takes any
+	formula $\gamma$ and produces an equivalent polynomial
+	$\gamma^\prime$:
+	\[
+	\begin{array}{l@{\,}l}
+	\gamma^\prime = \prod_{i = 1}^{n} 1 - & x_{i, 1} + x_{i, 2} + x_{i, 3} - \\
+	& - x_{i, 1}x_{i, 2} - x_{i, 1}x_{i, 3} - x_{i, 2}x_{i, 3}
+	\end{array}
+	\]
+	The transformation procedure from $\gamma$ to $\gamma^\prime$ takes
+	polynomial time and polynomial space.
+	\par
+	Assume that polynomial minimization is easy. We can take a formula
+	$\gamma$ in 3-CNF and translate it to $\gamma^\prime$ as per the
+	equations above. A valuation of $\gamma^\prime$ would be minimal iff
+	the corresponding $\gamma$ valuation is satisfiable. According
+	to our assumption it means that it is easy to find a satisfiable
+	solution of a 3-CNF formula, and 3-CNF satisfiability is known to be
+	NP-hard \cite{woeginger2003exact} which leads to a contradiction: polynomial
+	minimization cannot be easy.
 \end{proof}
 %
 \section{Simulated Annealing}
+In this section we first describe the simulated annealing algorithm,
+as well as different neighborhood selection criteria. We analyze the
+theoretical properties of simulated annealing and its convergence
+behavior. We then briefly describe SAFARI and Random Search.
+\subsection{Simulated Annealing}
+Simulated Annealing (SA) models physical annealing processes that
+occur when a material cools down. When the temperature of a molten
+block of iron is decreased, the atoms' movement decreases
+proportionally until some solid state is reached. If the temperature
+decreases too rapidly, atoms can get stuck in a non-optimal
+configuration and the material becomes brittle. A too slow decrease of
+temperature, however, would lengthen the cooling process
+unnecessarily. The objective is to find a rate of temperature
+reduction that enables the material to enter its energetically optimal
+configuration, while at the same time limiting the maximum length of
+the cooling process.
+
+The physical annealing process can be transferred into the domain of
+optimization algorithms. For this an iterative approach is used which
+starts from an initial random state with high temperature and
+gradually approaches states of lower temperature. The objective is to
+enter a low-energy state that has an optimal configuration of its
+parameters. We use SA in order to find a minimal diagnosis given the
+observation $\alpha$ and the propositional logic description of a
+boolean circuit. Therefore, the global optimum of the polynomial, consisting of $\alpha$ and $SD$, describes the minimal
+diagnosis and is a subset of higher cardinality diagnoses that form
+local optima.
+
+The starting point is formed by an initially random position in the
+search-space (i.e. a random diagnosis). From this position a
+neighborhood solution is calculated. If the neighborhood solution is
+better than the current solution it is selected for the next
+iteration. If, on the other hand, the neighborhood solution is worse
+than the current solution, the new solution is only accepted by a
+certain probability $p$. $p$ is calculated by the difference between
+the initial and the neighborhood solution, divided by the current
+temperature. This approach facilitates that contrary to Hill-climbing
+or gradient-descent methods, SA can overcome local optima by "jumping"
+over them (i.e. temporarily assuming a worse solution). With
+decreasing temperature the likelihood of accepting an inferior
+solution becomes smaller. As the likelihood for accepting inferior
+solutions goes against zero, the overall solution can only become
+better until an optimum or the maximum amount of steps is reached.
+
+The algorithm is presented in listing \ref{alg:sa}. The search-space
+is represented as a directed acyclic graph $G=(V,E)$ with $V$ being the
+operators and $E$ being the variables of the boolean expression  . The initial state is constructed through a random
+assignment of real values $[0,1]$ to all variables. All subsequent
+solutions are attained by randomly increasing or decreasing a value by
+0.05 in the range $[0,1]$. A neighborhood solution is defined by
+either taking parent-child nodes from a graph, or randomly selecting
+variables from the polynomial.
+
+\subsubsection{Graph-based Neighborhood}
+\label{subsubsec:neighborhoodA}
+Select one node $v \in V$ and randomly increase or decrease their
+value by a predefined amount. Then do the same for each child node
+$child(v)$. Here we assume that connected nodes have a higher
+influence on the overall solution than disconnected nodes in the
+graph. As adjacent nodes in a graph make up a local neighborhood,
+changing their value corresponds to an overall neighborhood solution.
+\subsubsection{Random Neighborhood}
+\label{subsubsec:neighborhoodB}
+
+Another approach is to randomize the neighbor selection. Therefore
+only the value of a predefined percentage $r \in [0,1]$ of randomly
+selected nodes $v$ is changed. Connections between nodes and
+parent-child relations are disregarded.
+
+\subsubsection{Theoretical Properties}
+Simulated annealing guarantees soundness but it does not guarantee
+completeness. The soundness is due to the properties of the
+encoding. In the context of diagnosis, soundness means that the
+algorithm finds only valid diagnoses, but cannot guarantee that it
+finds all diagnoses. Completeness, on the other hand, means that it is
+guaranteed that the algorithm finds all diagnoses, but some of those
+may be conflicts.
+\par
+Given infinite time it has been proven that simulated annealing will
+always converge to a global optimumn \cite{rajasekaran1990convergence}. Using simulated annealing with
+timing constraints, however, only guarantees that one solution is
+found. It is not known if this solution is a local or a global
+optimum. Each local optimum is a diagnosis, while each global optimum
+is a minimum cardinality diagnosis. From this follows that the
+algorithm is not sound, as local optima may contain conflicts that are
+not a valid diagnosis. Furthermore, the notion of completeness is
+violated, since simulated annealing generates exactly one solution per
+run, it cannot be guaranteed that it will eventually find all valid
+solutions.
+\par 
+Additionally, convergence of the algorithm cannot be guaranteed when
+using a time-constrained version of simulated annealing, as the run
+might be aborted before a global optimum of the objective function was
+encountered. Running the algorithm time-bounded is necessary, however,
+because simulated annealing has an exponential runtime dependent on
+the number of input parameters.
+
+\subsubsection{Convergence}
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[scale=0.5]{figures/sa}
+	\caption{Output of the simulated annealing algorithm graph-based
+		\label{fig:saGraph}}
+\end{figure}
+
+Figure \ref{fig:saGraph} depicts the results of simulated annealing
+using a graph-based neighborhood selection. It shows that the output
+value progresses in an inverted exponential manner until it converges
+to a certain value. At approximately 90000 steps a global optimum was
+found. It is not known, however, whether this is the only optimum
+(i.e. lowest energy state) or if there would be another optimum at a
+later time.
+
+
+\begin{algorithm}[htb]
+	\caption{Simulated Annealing}\label{alg:sa}
+	\begin{algorithmic}
+		\Function{doSimulatedAnnealing}{}
+		\State $current \gets initial()$
+		\State $best \gets current$
+		\While{$temp \geq 1$}			
+		\If {$msteps = 0$} 
+		\State $T \gets decreaseT()$
+		\State $msteps \gets mstepsInit$
+		\EndIf
+		\State $new \gets \textsc{neighbor}(current)$
+		\State $accept = e^{\frac{f(current)-f(new)}{T}}$
+		\If {$f(new) < f(current)$}
+		\State $current \gets new$
+		\If {$f(new) < f(best)$}
+		\State $best \gets new$
+		\EndIf
+		\ElsIf {$accept > random(0,1)$}
+		\State $current \gets new$
+		\EndIf		
+		\EndWhile
+		\State \Return $best$
+		\EndFunction
+		\Function{neighbor}{state}
+		\State $node \gets selectRandomNode(state)$
+		\State $child \gets selectRandomChild(node)$
+		\State $state \gets changeValue(node)$
+		\If {$exists(child)$}
+		\State $state \gets changeValue(child)$
+		\EndIf
+		\State $state \gets changeValue(node)$
+		\State \Return $state$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
 \section{Quantum Annealing}
 \section{Experiments}
 %
+The experiment was performed on a single Intel Xeon CPU with 3.3 GHz
+and 1.5 TB RAM, running a 64-Bit Ubuntu 14.04. As test instances the
+ISCAS85 benchmark is used.
+
+\subsection{Benchmark}
+We used the ISCAS85 benchmark \cite{iscas} as the input to the
+algorithms. The ISCAS85 benchmark consists several combinatorial
+circuits that can be used to measure the performance of testing and
+diagnosis algorithms. Included in the benchmark are circuits such as
+decoders, multipliers, cryptography circuits, and arithmetic logic
+units with the number of gates per circuit varying between 160 and
+3512.
+
+\subsection{Results}
+
+Although the propositional logic formula that is used with SAFARI was
+converted into a polynomial, the results show that the algorithms
+specifically designed to work with propositional logic achieve far
+better results than traditional optimization techniques using
+polynomials. For all algorithms a fixed runtime was defined. Upon
+exceeding the time limit the by then achieved parameters were taken as
+the solution.
+
+We define the following metric to denote the quality of a solution:
+\emph{Isolation accuracy} $M_{ia} $ describes the quality of a
+solution given the health state $H = \{\pr{f = \perp}\}$ (Definition
+\ref{def:he}) and a fault injection $\phi$. We calculate the Euclidean
+distance between $H$ and $\phi$ to determine how close the output of
+an algorithm is to the original fault injection \cite{stern2015many}.
+
+\begin{equation}
+M_{ia} = \sqrt{\sum_{i=1}^{|H|} (\pr{f_i = \perp} - \pr{p_i = \perp})^2}
+\end{equation}
+
+With $f_i \in H$ and $p_i \in \phi$ and $M_{ia} \in
+\mathcal{R}$. Smaller values of $M_{ia}$ indicate that the calculated
+health state is closer to the fault injection. From this we can see
+how good the diagnosis algorithm was able to determine the actual
+injected fault. Bigger values on the other hand indicate that the
+algorithm found more root-causes for faults than were in the
+fault-injection $\phi$, which means that false-positive diagnoses are
+generated.
+
+Table~\ref{tbl:resGraph} shows the results the two approaches to
+simulated annealing. The initial temperature was chosen in order to
+achieve a reasonable probability for accepting worse states during
+cool-down of the annealing algorithm. The number of steps indicates
+how many annealing steps the algorithm performs until the temperature
+is decreased. The number of iterations specifies how often the
+algorithm was started for a specific observation $\alpha$ and a given
+polynomial $p$. The outcome of the SA algorithm is the average value
+of all iterations. From the table it can be concluded that the more
+iterations are performed, the better the isolation accuracy
+becomes. This can be explained through statistical analysis. As the
+average value for determining the accuracy becomes closer to the real
+value, the more iterations are performed.
+
+Contrary to the assumption neither implementation of simulated
+annealing is able to beat SAFARI in terms of speed or accuracy. While
+isolation accuracy for simulated annealing is around 32 and 20,
+respectively, SAFARI achieves an isolation accuracy of approximately
+3. For these instances Random Search achieves an accuracy of
+approximately 10. The low value of isolation accuracy for Random
+Search can be explained through the algorithms ``lucky'' guessing and
+finding a good solution given a sufficient amount of runs. For
+simulated annealing on the other hand we can guarantee that it will
+hit a global optimum eventually.
+\begin{table*}[htb]
+	\centering	
+	\begin{tabular}{|l|l|c|c|c|c|c|}
+		\hline
+		\multicolumn{2}{|l|}{}                                                       & \textbf{Run 1} & \textbf{Run 2} & \textbf{Run 3} & \textbf{Run 4} & \textbf{Run 5} \\ \hline
+		\multicolumn{1}{|c|}{\multirow{4}{*}{Parameters}} & \textbf{Temperature}     & 20             & 20             & 30             & 10             & 10             \\ \cline{2-7} 
+		\multicolumn{1}{|c|}{}                            & \textbf{Steps}           & 10             & 4              & 20             & 20             & 5              \\ \cline{2-7} 
+		\multicolumn{1}{|c|}{}                            & \textbf{Runtime}         & 20             & 20             & 60             & 20             & 20             \\ \cline{2-7} 
+		\multicolumn{1}{|c|}{}                            & \textbf{Iterations}      & 5              & 5              & 5              & 50             & 50             \\ \hline
+		\multirow{2}{*}{SA Graph}                         & \textbf{Steps completed} & 900          & 1800          & 95000         & 47000          & 45000            \\ \cline{2-7} 
+		& \textbf{Isolation acc.}  & 32.4          &    32.3       & 31.4           & 32.2           & 32.8         \\ \hline
+		\multirow{2}{*}{SA Random}                        & \textbf{Steps completed} & 800          & 1700          & 85000          & 42000          & 42000\\ \cline{2-7} 
+		& \textbf{Isolation acc.}  & 20.1         & 19.9          & 19.6          & 20.0           & 20.0           \\ \hline
+	\end{tabular}
+	\caption{Runs with different parameters for simulated annealing using either the graph-based neighborhood selection (SA Graph) or a random selection of nodes (SA Random).\label{tbl:resGraph}}
+\end{table*}
 \begin{figure}[htb]
 \centering
 \includegraphics[scale=0.5]{multiplier.mps}
